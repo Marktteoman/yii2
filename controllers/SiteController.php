@@ -2,6 +2,7 @@
 
 namespace app\controllers;
 
+use app\models\User;
 use http\Params;
 use Yii;
 use yii\filters\AccessControl;
@@ -10,6 +11,7 @@ use yii\web\Response;
 use yii\filters\VerbFilter;
 use app\models\LoginForm;
 use app\models\ContactForm;
+use app\models\SignupForm;
 
 class SiteController extends Controller
 {
@@ -134,4 +136,62 @@ class SiteController extends Controller
     {
         return $this->render('about');
     }
+
+    public function actionAddAdmin() {
+        $model = User::find()->where(['username' => 'admin'])->one();
+        if (empty($model)) {
+            $user = new User();
+            $user->username = 'admin';
+            $user->email = 'admin@кодер.укр';
+            $user->setPassword('admin');
+            $user->generateAuthKey();
+            if ($user->save()) {
+                echo 'good';
+            }
+        }
+    }
+
+    public function actionSignup()
+    {
+        $model = new SignupForm();
+
+        if ($model->load(Yii::$app->request->post())) {
+            if ($user = $model->signup()) {
+                if (Yii::$app->getUser()->login($user)) {
+                    return $this->goHome();
+                }
+            }
+        }
+
+        return $this->render('signup', [
+            'model' => $model,
+        ]);
+    }
+
+    public function actionUserlist(){
+        $models = User::find()->orderBy('status')->all();
+        return $this ->render('userlist', [
+            'models' => $models
+        ]);
+    }
+
+    public function actionUpdstatus($id){
+        $model = User::findOne($id);
+
+        $model -> status=User::STATUS_DELETED;
+        $model ->save();
+
+        $this->redirect(['userlist', 'id' => $id]);
+    }
+
+    public function actionDwnstatus($id){
+        $model = User::findOne($id);
+
+        $model -> status=User::STATUS_ACTIVE;
+        $model ->save();
+
+        $this->redirect(['userlist', 'id' => $id]);
+    }
+
+
 }
